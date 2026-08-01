@@ -1,51 +1,41 @@
-import { createContext, useContext, useState } from 'react';
-
-const AuthContext = createContext(null);
+import { useDispatch, useSelector } from 'react-redux';
+import { clearAuth, setAuth, setUser } from '../store/slices/authSlice';
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => {
-    const t = localStorage.getItem('token');
-    return t && t !== 'undefined' && t !== 'null' ? t : null;
-  });
+  return children;
+}
 
-  const [user, setUser] = useState(() => {
-    const storedUser = localStorage.getItem('user');
-    if (!storedUser || storedUser === 'undefined' || storedUser === 'null') return null;
-    try {
-      return JSON.parse(storedUser);
-    } catch {
-      return null;
-    }
-  });
+export const useAuth = () => {
+  const dispatch = useDispatch();
+  const { token, user } = useSelector((state) => state.auth);
 
   const loginUser = (data) => {
     if (data.token) {
       localStorage.setItem('token', data.token);
-      setToken(data.token);
     }
+
     if (data.user) {
       localStorage.setItem('user', JSON.stringify(data.user));
-      setUser(data.user);
     }
+
+    dispatch(
+      setAuth({
+        token: data.token ?? token,
+        user: data.user ?? user,
+      }),
+    );
   };
 
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    setToken(null);
-    setUser(null);
+    dispatch(clearAuth());
   };
 
   const updateUser = (updatedUser) => {
     localStorage.setItem('user', JSON.stringify(updatedUser));
-    setUser(updatedUser);
+    dispatch(setUser(updatedUser));
   };
 
-  return (
-    <AuthContext.Provider value={{ token, user, loginUser, logout, updateUser }}>
-      {children}
-    </AuthContext.Provider>
-  );
-}
-
-export const useAuth = () => useContext(AuthContext);
+  return { token, user, loginUser, logout, updateUser };
+};
